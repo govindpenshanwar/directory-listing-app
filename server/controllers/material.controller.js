@@ -1,3 +1,4 @@
+import mongoose, { isObjectIdOrHexString, isValidObjectId } from "mongoose";
 import materials from "../models/material.model.js";
 
 import ApiError from "../utils/ApiError.js";
@@ -21,9 +22,27 @@ export const addMaterialName = asyncHandler(async (req, res) => {
 export const getMaterialsByProductId = asyncHandler(async (req, res) => {
     try {
         const { id } = req.params;
-        const allMaterials = await materials.find({ product: id }).populate('product')
+        // const allMaterials = await materials.find({ product: id }).populate('product')
+        const objId = new mongoose.Types.ObjectId(id)
+
+        const allMaterials = await materials.aggregate([{
+            $match: { product: objId }
+        },
+        {
+            $lookup: {
+                from: "products",
+                localField: "product",
+                foreignField: "_id",
+                as: "all_materials"
+            }
+        }, {
+            $addFields: {
+                materialCount: { $size: "$all_materials" }
+            }
+        }
+        ])
         return res.json(new ApiResponse(200, "Material fetched successfully", allMaterials))
     } catch (error) {
-        throw new ApiError(500, error.message)
+        throw new ApiError(500, error.message, error)
     }
 })

@@ -29,8 +29,8 @@ app.get("/", (req, res) => {
 })
 
 app.use((err, req, res, next) => {
-    if (err) {
-        throw new ApiError(err.statusCode || 500, err.message || "something went wrong", err)
+    if (err instanceof ApiError) {
+        return res.status(err.statusCode || 500).json({ statusCode: err.statusCode || 500, success: err.success || false, message: err.message || "Something went wrong", error: err.errors })
     }
     next();
 })
